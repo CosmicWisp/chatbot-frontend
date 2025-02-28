@@ -45,31 +45,24 @@ export function Chat() {
       };
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
-      
-      // const botResponse = { 
-      //   id: Date.now(), 
-      //   role: 'assistant', 
-      //   // content: data.response 
-      //   content: data.candidates[0]?.content?.parts[0]?.text
-      // };
-      // setMessages((prev) => [...prev, botResponse]);
 
-      const response = await fetch('http://ENDPOINT-URL-HERE', {
+      const response = await fetch('http://localhost:5000/run-command', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ trimmedMessage }), // Add additional fields as needed
+        body: JSON.stringify({ command: trimmedMessage }), // Add additional fields as needed
         signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error(`Request Failed! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
       }
 
       const data = await response.json();
 
-      const responseContent = data.response // API response structure.
+      const responseContent = data.output || data.error || 'No response recieved'; // API response structure.
 
       setIsLoading(false);
       setIsStreaming(true);
@@ -115,7 +108,7 @@ export function Chat() {
           role: 'assistant',
           content: error.message.includes('aborted') 
             ? 'Request cancelled' 
-            : 'Sorry, an error occurred'
+            : error.message
         }]);
       }
       setIsLoading(false);
